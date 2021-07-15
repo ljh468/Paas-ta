@@ -1,0 +1,56 @@
+﻿====================================
+# mysql 포트 번호 및 ip주소
+10.0.40.145
+13307
+username : 2fcc9e11da80ca67
+====================================
+
+source login.sh
+
+점프박스
+
+#bosh vm 에 ssh로 접속하기 jumpbox 사용
+bosh int warden/creds.yml --path /jumpbox_ssh/private_key > jumpbox.key
+chmod 600 jumpbox.key
+ssh jumpbox@10.0.1.XX -i jumpbox.key
+
+
+#해당 명령어를 통해 VM들에 대한 정보 뿐만 아니라 VM의 CPU 상태, 메모리 사용량 등을 확인할 수 있다. 파스타 배포할 때 생성된 BOSH VMS, 인스턴스에 대한 목록을 확인할 수 있음
+bosh -e micro-bosh -d paasta vms --vitals 
+
+#api가 여러개 있을 경우 api가 BOSH를 통해 배포되었기 때문에
+bosh -e micro-bosh -d paasta ssh api 
+
+#sudo su 를 치고
+#명령어를 치면 배포되어 있는 프로세스 목록을 확인할 수 있음
+monit summary 
+
+#space role 설정
+cf set-space-role edu-user edu-org edu-space SpaceDeveloper
+
+#org role 설정
+cf set-org-role edu-user edu-org OrgManager
+
+# 마켓에 없는 인스턴스 강제 등록(브로커 필요)
+cf create-user-provided-service
+cf create-user-provided-service my-db-mine -p '{"username":"admin", "password":"pa55woRD"}'
+
+#cf ssh 터널링 mysql
+cf env welcome-cf
+cf ssh welcome-cf -L 9999:10.10.4.14:3306
+
+#조직 스페이스 바꾸기
+cf target -o paasta-org -s paasta-space
+
+#서비스 브로커 목록 확인
+cf service-brokers
+
+#등록
+cf create-service-broker
+
+#엑세스 확인
+cf service-access
+
+#허가
+cf enable-service-access [Mysql-DB]
+cf service-access
